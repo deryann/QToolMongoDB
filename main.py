@@ -325,6 +325,98 @@ def reportQuestionsDiffence():
             print ("=================================")
     pass
 
+QUESTION_STYLE_UNKNOWN = 0              #未知
+QUESTION_STYLE_SINGLE_CHOICE = 1        #單選
+QUESTION_STYLE_MULTIPLE_CHOICES = 2     #多選
+QUESTION_STYLE_CHOICE_BLANK = 3         #選填 (可畫卡的填充題)
+QUESTION_STYLE_BLANK = 4                #填充
+QUESTION_STYLE_CAL = 5                #計算證明題
+
+def updateQuestionsStyle():
+    """
+    依據幾個QUSETION 內的規則，猜測出題型
+    """
+    db = getDefaultDB()
+    collect3 = db['cleanqs']
+
+    #填充題規則(先比對好簡單的填充題規則，未來會被其他題型給複寫)
+    dicFinding={"FULLDOC": {
+                                    "$regex": ".*(originalAnsBox).*"
+                                }
+               }
+
+    dicUpdate = {'$set':{"SuggestQusetionStyle": QUESTION_STYLE_BLANK}}
+    result = collect3.update_many(dicFinding, dicUpdate)
+    print ("result.matched_count Of QS ",QUESTION_STYLE_BLANK," =", result.matched_count)
+
+    #選填題規則
+    dicFinding={
+                "$and": [
+                            {
+                                "FULLDOC": {
+                                    "$regex": ".*(TCNBOX).*"
+                                }
+                            }
+                        ]
+                    }
+    dicUpdate = {'$set':{"SuggestQusetionStyle": QUESTION_STYLE_CHOICE_BLANK}}
+    result = collect3.update_many(dicFinding,dicUpdate)
+    print ("result.matched_count Of QS ",QUESTION_STYLE_CHOICE_BLANK," =", result.matched_count)
+
+    #單擇題規則
+    dicFinding={
+                "$and": [
+                            {
+                                "FULLDOC": {
+                                    "$regex": ".*(QOPS|QOPSINONELINE).*"
+                                },
+                                "QANS": {
+                                    "$in": [
+                                        "(1)",
+                                        "(2)",
+                                        "(3)",
+                                        "(4)",
+                                        "(5)"
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+    dicUpdate = {'$set':{"SuggestQusetionStyle": QUESTION_STYLE_SINGLE_CHOICE}}
+    result = collect3.update_many(dicFinding,dicUpdate)
+    print ("result.matched_count Of QS ",QUESTION_STYLE_SINGLE_CHOICE," =", result.matched_count)
+
+    #多選題規則
+    dicFinding={
+                "$and": [
+                            {
+                                "FULLDOC": {
+                                    "$regex": ".*(QOPS|QOPSINONELINE).*"
+                                },
+                                "QANS": {
+                                    "$not":{
+                                        "$in": [
+                                            "(1)",
+                                            "(2)",
+                                            "(3)",
+                                            "(4)",
+                                            "(5)"
+                                                ]
+                                        }
+                                }
+                            }
+                        ]
+                    }
+
+    dicUpdate = {'$set':{"SuggestQusetionStyle": QUESTION_STYLE_MULTIPLE_CHOICES}}
+    result = collect3.update_many(dicFinding,dicUpdate)
+    print ("result.matched_count Of QS ",QUESTION_STYLE_MULTIPLE_CHOICES," =", result.matched_count)
+
+
+
+def updateQuestions():
+    updateQuestionsStyle()
+
 def main():
 
 #    removeInCollect()
@@ -344,7 +436,8 @@ def main():
 
     #searchDistinct()
     #reportQuestionsDiffence()
-    runFindSomeDataIntoFile()
+    #runFindSomeDataIntoFile()
+    updateQuestions()
 
     timer_end = timeit.default_timer()
     print("Time usage:",timer_end - timer_start," sec(s)")

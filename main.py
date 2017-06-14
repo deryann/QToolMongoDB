@@ -273,25 +273,35 @@ def findSomeQIntoFile(collect, dicfinding, strOutputFileName):
     docs = collect.find(dicfinding)
     fPtOutput = codecs.open(strOutputFileName, "w+", "utf-8" )
 
-    for doc in docs.sort([("FULLDOC",pymongo.ASCENDING)] ):
+    for doc in docs.sort([("SuggestQusetionStyle",pymongo.ASCENDING),("FULLDOC",pymongo.ASCENDING)] ):
         fPtOutput.write(doc["FULLDOC"])
 
     fPtOutput.close()
     pass
 
-def runFindSomeDataIntoFile():
+def saveSomeRegexDataIntoFile(strRegex, strFileName):
     db = getDefaultDB()
     collect3 = db['cleanqs']
     dicfinding ={
     "$or": [
         {
             "FULLDOC": {
-                "$regex": ".*(拋物線|橢圓|雙曲線|二次曲線).*"
+                "$regex":strRegex
             }
         }
     ]
     }
-    findSomeQIntoFile(collect3, dicfinding,"TEST.tex")
+    findSomeQIntoFile(collect3, dicfinding,strFileName)
+    pass
+
+
+def runFindSomeDataIntoFile():
+#    strReg=".*(拋物線|橢圓|雙曲線|二次曲線).*"
+#    fileName = "TEST.tex"
+    strReg=".*(lvec|空間中|空間坐標|向量).*"
+    fileName = "Space.tex"
+
+    saveSomeRegexDataIntoFile(strReg,fileName)
 
 
 def findQById(inputId, collect):
@@ -436,8 +446,8 @@ def main():
 
     #searchDistinct()
     #reportQuestionsDiffence()
-    #runFindSomeDataIntoFile()
-    updateQuestions()
+    runFindSomeDataIntoFile()
+    #updateQuestions()
 
     timer_end = timeit.default_timer()
     print("Time usage:",timer_end - timer_start," sec(s)")
